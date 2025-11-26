@@ -1,5 +1,6 @@
 let conversations = []; // Store all conversations globally
 
+// File input handler
 document.getElementById("fileInput").addEventListener("change", function(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -14,7 +15,7 @@ document.getElementById("fileInput").addEventListener("change", function(event) 
             conversations = Array.isArray(json) ? json : [json];
 
             renderConversationList(conversations);
-            
+
             // Optionally display the first conversation initially
             if (conversations.length > 0) {
                 renderConversation(conversations[0]);
@@ -55,10 +56,8 @@ function setActiveConversation(activeIndex) {
     });
 }
 
-// Render a single conversation (same as before)
+// Render a single conversation
 function renderConversation(data) {
-    
-    console.log("renderConversation called");
     console.log("Rendering conversation:", data.title);
 
     const container = document.getElementById("chatContainer");
@@ -67,7 +66,7 @@ function renderConversation(data) {
     let messages = [];
 
     if (data.mapping) {
-        console.log("Detected mapping format with potential null root");
+        console.log("Detected mapping format, traversing all roots");
 
         const traverse = (nodeId) => {
             const node = data.mapping[nodeId];
@@ -75,13 +74,16 @@ function renderConversation(data) {
 
             if (node.message && node.message.content && node.message.content.parts) {
                 const msg = node.message;
-                messages.push({
-                    role: msg.author.role,
-                    text: msg.content.parts.join("\n"),
-                    timestamp: msg.create_time
-                        ? new Date(msg.create_time * 1000).toLocaleString()
-                        : ""
-                });
+                // Skip visually hidden messages if desired
+                if (!msg.metadata?.is_visually_hidden_from_conversation) {
+                    messages.push({
+                        role: msg.author.role,
+                        text: msg.content.parts.join("\n"),
+                        timestamp: msg.create_time
+                            ? new Date(msg.create_time * 1000).toLocaleString()
+                            : ""
+                    });
+                }
             }
 
             if (node.children && node.children.length > 0) {
@@ -89,7 +91,12 @@ function renderConversation(data) {
             }
         };
 
-        traverse("client-created-root");
+        // Detect root nodes dynamically (parent = null)
+        Object.values(data.mapping).forEach(node => {
+            if (!node.parent) {
+                traverse(node.id);
+            }
+        });
 
         // Sort messages by timestamp
         messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -128,6 +135,11 @@ function renderConversation(data) {
 
         container.appendChild(wrapper);
     });
+
+    // Scroll to bottom
+    if (messages.length > 0) {
+        container.scrollTop = container.scrollHeight;
+    }
 
     console.log("Render complete");
 }
