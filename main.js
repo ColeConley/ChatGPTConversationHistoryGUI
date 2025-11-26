@@ -110,51 +110,48 @@ function renderConversation(data) {
 
     console.log("Total messages:", messages.length);
 
-    // Lazy loading logic
-    let startIndex = Math.max(0, messages.length - MESSAGES_PER_BATCH);
+// Lazy loading logic (top-first)
+let endIndex = Math.min(MESSAGES_PER_BATCH, messages.length); // initial batch from start
+let startIndex = 0;
 
-    const renderBatch = (fromIndex, toIndex, prepend = false) => {
-        const fragment = document.createDocumentFragment();
-        for (let i = fromIndex; i < toIndex; i++) {
-            const msg = messages[i];
-            const bubble = document.createElement("div");
-            bubble.classList.add("message");
-            bubble.classList.add(msg.role === "user" ? "user" : "assistant");
-            bubble.textContent = msg.text;
+const renderBatch = (fromIndex, toIndex, append = true) => {
+    const fragment = document.createDocumentFragment();
+    for (let i = fromIndex; i < toIndex; i++) {
+        const msg = messages[i];
+        const bubble = document.createElement("div");
+        bubble.classList.add("message");
+        bubble.classList.add(msg.role === "user" ? "user" : "assistant");
+        bubble.textContent = msg.text;
 
-            const time = document.createElement("div");
-            time.classList.add("timestamp");
-            time.textContent = msg.timestamp;
+        const time = document.createElement("div");
+        time.classList.add("timestamp");
+        time.textContent = msg.timestamp;
 
-            const wrapper = document.createElement("div");
-            wrapper.appendChild(bubble);
-            wrapper.appendChild(time);
+        const wrapper = document.createElement("div");
+        wrapper.appendChild(bubble);
+        wrapper.appendChild(time);
 
-            fragment.appendChild(wrapper);
-        }
+        fragment.appendChild(wrapper);
+    }
 
-        if (prepend) {
-            container.prepend(fragment);
-        } else {
-            container.appendChild(fragment);
-        }
-    };
+    if (append) {
+        container.appendChild(fragment);
+    } else {
+        container.prepend(fragment);
+    }
+};
 
-    // Initial render (latest batch)
-    renderBatch(startIndex, messages.length);
+// Initial render (first batch from top)
+renderBatch(startIndex, endIndex);
 
-    // Scroll to bottom
-    container.scrollTop = container.scrollHeight;
+// Scroll to top
+container.scrollTop = 0;
 
-    // Lazy load older messages on scroll
-    container.onscroll = () => {
-        if (container.scrollTop === 0 && startIndex > 0) {
-            const newStart = Math.max(0, startIndex - MESSAGES_PER_BATCH);
-            renderBatch(newStart, startIndex, true);
-            startIndex = newStart;
-
-            // Maintain scroll position so content doesn't jump
-            container.scrollTop = 1;
-        }
-    };
-}
+// Lazy load newer messages when scrolling to bottom
+container.onscroll = () => {
+    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 1 && endIndex < messages.length) {
+        const newEnd = Math.min(messages.length, endIndex + MESSAGES_PER_BATCH);
+        renderBatch(endIndex, newEnd, true);
+        endIndex = newEnd;
+    }
+};
