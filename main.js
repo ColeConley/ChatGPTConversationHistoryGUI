@@ -1,39 +1,23 @@
-console.log("main.js loaded");
-
 document.getElementById("fileInput").addEventListener("change", function(event) {
-    console.log("File selected");
-
     const file = event.target.files[0];
-
-    if (!file) {
-        console.log("No file found");
-        return;
-    }
-
-    console.log("Reading file:", file.name);
+    if (!file) return;
 
     const reader = new FileReader();
-
     reader.onload = function(e) {
-        console.log("File loaded, parsing JSON...");
-
         try {
             const json = JSON.parse(e.target.result);
-            console.log("JSON parsed successfully:", json);
-            renderConversation(json);
+            console.log("JSON loaded:", json);
+
+            // If array, take the first conversation
+            const conversation = Array.isArray(json) ? json[0] : json;
+            renderConversation(conversation);
         } catch (err) {
             console.error("JSON parse error:", err);
             alert("Error parsing JSON. Check console.");
         }
     };
-
-    reader.onerror = function() {
-        console.error("FileReader error:", reader.error);
-    };
-
     reader.readAsText(file);
 });
-
 
 function renderConversation(data) {
     console.log("renderConversation called");
@@ -50,7 +34,7 @@ function renderConversation(data) {
             const node = data.mapping[nodeId];
             if (!node) return;
 
-            if (node.message) {
+            if (node.message && node.message.content && node.message.content.parts) {
                 const msg = node.message;
                 messages.push({
                     role: msg.author.role,
@@ -66,13 +50,11 @@ function renderConversation(data) {
             }
         };
 
-        // Start from root node
         traverse("client-created-root");
 
-        // Sort by timestamp
+        // Sort messages by timestamp
         messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    }
-    else if (Array.isArray(data.messages)) {
+    } else if (Array.isArray(data.messages)) {
         console.log("Detected messages[] format");
 
         messages = data.messages.map(msg => ({
@@ -110,4 +92,3 @@ function renderConversation(data) {
 
     console.log("Render complete");
 }
-
