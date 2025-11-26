@@ -1,4 +1,5 @@
 let conversations = []; // Store all conversations globally
+const MESSAGES_PER_BATCH = 50; // Number of messages to render per batch
 
 // File input handler
 document.getElementById("fileInput").addEventListener("change", function(event) {
@@ -56,7 +57,7 @@ function setActiveConversation(activeIndex) {
     });
 }
 
-// Render a single conversation
+// Render a single conversation with lazy loading
 function renderConversation(data) {
     console.log("Rendering conversation:", data.title);
 
@@ -66,15 +67,12 @@ function renderConversation(data) {
     let messages = [];
 
     if (data.mapping) {
-        console.log("Detected mapping format, traversing all roots");
-
         const traverse = (nodeId) => {
             const node = data.mapping[nodeId];
             if (!node) return;
 
             if (node.message && node.message.content && node.message.content.parts) {
                 const msg = node.message;
-                // Skip visually hidden messages if desired
                 if (!msg.metadata?.is_visually_hidden_from_conversation) {
                     messages.push({
                         role: msg.author.role,
@@ -91,18 +89,12 @@ function renderConversation(data) {
             }
         };
 
-        // Detect root nodes dynamically (parent = null)
         Object.values(data.mapping).forEach(node => {
-            if (!node.parent) {
-                traverse(node.id);
-            }
+            if (!node.parent) traverse(node.id);
         });
 
-        // Sort messages by timestamp
         messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     } else if (Array.isArray(data.messages)) {
-        console.log("Detected messages[] format");
-
         messages = data.messages.map(msg => ({
             role: msg.role,
             text: msg.content,
@@ -116,30 +108,53 @@ function renderConversation(data) {
         return;
     }
 
-    console.log("Messages parsed:", messages.length);
+    console.log("Total messages:", messages.length);
 
-    // Render chat bubbles
-    messages.forEach(msg => {
-        const bubble = document.createElement("div");
-        bubble.classList.add("message");
-        bubble.classList.add(msg.role === "user" ? "user" : "assistant");
-        bubble.textContent = msg.text;
+    // Lazy loading logic
+    let startIndex = Math.max(0, messages.length - MESSAGES_PER_BATCH);
 
-        const time = document.createElement("div");
-        time.classList.add("timestamp");
-        time.textContent = msg.timestamp;
+    const renderBatch = (fromIndex, toIndex, prepend = false) => {
+        const fragment = document.createDocumentFragment();
+        for (let i = fromIndex; i < toIndex; i++) {
+            const msg = messages[i];
+            const bubble = document.createElement("div");
+            bubble.classList.add("message");
+            bubble.classList.add(msg.role === "user" ? "user" : "assistant");
+            bubble.textContent = msg.text;
 
-        const wrapper = document.createElement("div");
-        wrapper.appendChild(bubble);
-        wrapper.appendChild(time);
+            const time = document.createElement("div");
+            time.classList.add("timestamp");
+            time.textContent = msg.timestamp;
 
-        container.appendChild(wrapper);
-    });
+            const wrapper = document.createElement("div");
+            wrapper.appendChild(bubble);
+            wrapper.appendChild(time);
+
+            fragment.appendChild(wrapper);
+        }
+
+        if (prepend) {
+            container.prepend(fragment);
+        } else {
+            container.appendChild(fragment);
+        }
+    };
+
+    // Initial render (latest batch)
+    renderBatch(startIndex, messages.length);
 
     // Scroll to bottom
-    if (messages.length > 0) {
-        container.scrollTop = container.scrollHeight;
-    }
+    container.scrollTop = container.scrollHeight;
 
-    console.log("Render complete");
+    // Lazy load older messages on scroll
+    container.onscroll = () => {
+        if (container.scrollTop === 0 && startIndex > 0) {
+            const newStart = Math.max(0, startIndex - MESSAGES_PER_BATCH);
+            renderBatch(newStart, startIndex, true);
+            startIndex = newStart;
+
+            // Maintain scroll position so content doesn't jump
+            container.scrollTop = 1;
+        }
+    };
 }
