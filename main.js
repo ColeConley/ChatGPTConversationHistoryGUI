@@ -37,37 +37,69 @@ document.getElementById("fileInput").addEventListener("change", function(event) 
 
 function renderConversation(data) {
     console.log("renderConversation called");
-    
+
     const container = document.getElementById("chatContainer");
     container.innerHTML = "";
 
-    if (!data.mapping) {
-        console.error("No mapping field in JSON");
+    let messages = [];
+
+    if (data.mapping) {
+        console.log("Detected mapping format with potential null root");
+
+        const traverse = (nodeId) => {
+            const node = data.mapping[nodeId];
+            if (!node) return;
+
+            if (node.message) {
+                const msg = node.message;
+                messages.push({
+                    role: msg.author.role,
+                    text: msg.content.parts.join("\n"),
+                    timestamp: msg.create_time
+                        ? new Date(msg.create_time * 1000).toLocaleString()
+                        : ""
+                });
+            }
+
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(childId => traverse(childId));
+            }
+        };
+
+        // Start from root node
+        traverse("client-created-root");
+
+        // Sort by timestamp
+        messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    }
+    else if (Array.isArray(data.messages)) {
+        console.log("Detected messages[] format");
+
+        messages = data.messages.map(msg => ({
+            role: msg.role,
+            text: msg.content,
+            timestamp: msg.create_time
+                ? new Date(msg.create_time * 1000).toLocaleString()
+                : ""
+        }));
+    } else {
+        console.error("Unrecognized conversation structure", data);
         container.innerHTML = "<p style='color:red'>Invalid conversation file.</p>";
         return;
     }
 
-    const messages = Object.values(data.mapping)
-        .filter(m => m.message)
-        .sort((a, b) => (a.message.create_time || 0) - (b.message.create_time || 0));
+    console.log("Messages parsed:", messages.length);
 
-    console.log("Messages found:", messages.length);
-
+    // Render chat bubbles
     messages.forEach(msg => {
-        const role = msg.message.author.role;
-        const text = msg.message.content.parts.join("\n");
-        const timestamp = msg.message.create_time
-            ? new Date(msg.message.create_time * 1000).toLocaleString()
-            : "";
-
         const bubble = document.createElement("div");
         bubble.classList.add("message");
-        bubble.classList.add(role === "user" ? "user" : "assistant");
-        bubble.textContent = text;
+        bubble.classList.add(msg.role === "user" ? "user" : "assistant");
+        bubble.textContent = msg.text;
 
         const time = document.createElement("div");
         time.classList.add("timestamp");
-        time.textContent = timestamp;
+        time.textContent = msg.timestamp;
 
         const wrapper = document.createElement("div");
         wrapper.appendChild(bubble);
@@ -78,3 +110,4 @@ function renderConversation(data) {
 
     console.log("Render complete");
 }
+
