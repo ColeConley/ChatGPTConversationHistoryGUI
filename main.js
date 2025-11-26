@@ -1,23 +1,57 @@
+console.log("main.js loaded");
+
 document.getElementById("fileInput").addEventListener("change", function(event) {
+    console.log("File selected");
+
     const file = event.target.files[0];
-    if (!file) return;
+
+    if (!file) {
+        console.log("No file found");
+        return;
+    }
+
+    console.log("Reading file:", file.name);
 
     const reader = new FileReader();
+
     reader.onload = function(e) {
-        const json = JSON.parse(e.target.result);
-        renderConversation(json);
+        console.log("File loaded, parsing JSON...");
+
+        try {
+            const json = JSON.parse(e.target.result);
+            console.log("JSON parsed successfully:", json);
+            renderConversation(json);
+        } catch (err) {
+            console.error("JSON parse error:", err);
+            alert("Error parsing JSON. Check console.");
+        }
+    };
+
+    reader.onerror = function() {
+        console.error("FileReader error:", reader.error);
     };
 
     reader.readAsText(file);
 });
 
+
 function renderConversation(data) {
+    console.log("renderConversation called");
+    
     const container = document.getElementById("chatContainer");
     container.innerHTML = "";
+
+    if (!data.mapping) {
+        console.error("No mapping field in JSON");
+        container.innerHTML = "<p style='color:red'>Invalid conversation file.</p>";
+        return;
+    }
 
     const messages = Object.values(data.mapping)
         .filter(m => m.message)
         .sort((a, b) => (a.message.create_time || 0) - (b.message.create_time || 0));
+
+    console.log("Messages found:", messages.length);
 
     messages.forEach(msg => {
         const role = msg.message.author.role;
@@ -41,4 +75,6 @@ function renderConversation(data) {
 
         container.appendChild(wrapper);
     });
+
+    console.log("Render complete");
 }
