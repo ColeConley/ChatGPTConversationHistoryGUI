@@ -57,7 +57,9 @@ function setActiveConversation(activeIndex) {
 
 // Render a single conversation (same as before)
 function renderConversation(data) {
+    
     console.log("renderConversation called");
+    console.log("Rendering conversation:", data.title);
 
     const container = document.getElementById("chatContainer");
     container.innerHTML = "";
