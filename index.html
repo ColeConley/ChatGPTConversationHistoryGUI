@@ -1,21 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>ChatGPT Conversation Viewer</title>
-    <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <title>Conversation UI</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <input type="file" id="fileInput" accept=".json">
 
-<h2>ChatGPT Conversation Viewer</h2>
+    <div id="mainContainer">
+        <!-- Left Panel -->
+        <div id="leftPanel">
+            <div id="leftActions">
+                <button id="exportJson">Export Current Conversation</button>
+                <button id="copyMessages">Copy All Messages</button>
+                <button id="downloadMessages">Download Filtered Messages</button>
+                <input type="text" id="searchInput" placeholder="Search messages...">
+                <select id="roleFilter">
+                    <option value="all">All Roles</option>
+                    <option value="user">User</option>
+                    <option value="assistant">Assistant</option>
+                </select>
+                <button id="applyFilter">Apply Filter</button>
+            </div>
+            <div id="conversationListContainer">
+                <h3>Your Conversations</h3>
+                <div id="conversationList"></div>
+            </div>
+        </div>
 
-<input type="file" id="fileInput" accept=".json" />
+        <!-- Center Panel -->
+        <div id="chatContainer"></div>
+    </div>
 
-<div id="mainContainer">
-    <div id="conversationList"></div>
-    <div id="chatContainer"></div>
-</div>
-
-<script src="main.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
