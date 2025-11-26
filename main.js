@@ -57,7 +57,7 @@ function setActiveConversation(activeIndex) {
     });
 }
 
-// Render a single conversation with lazy loading
+// Render a single conversation (top-first lazy loading)
 function renderConversation(data) {
     console.log("Rendering conversation:", data.title);
 
@@ -66,6 +66,7 @@ function renderConversation(data) {
 
     let messages = [];
 
+    // Parse messages from mapping or messages[]
     if (data.mapping) {
         const traverse = (nodeId) => {
             const node = data.mapping[nodeId];
@@ -110,48 +111,49 @@ function renderConversation(data) {
 
     console.log("Total messages:", messages.length);
 
-// Lazy loading logic (top-first)
-let endIndex = Math.min(MESSAGES_PER_BATCH, messages.length); // initial batch from start
-let startIndex = 0;
+    // Lazy loading variables
+    let startIndex = 0;
+    let endIndex = Math.min(MESSAGES_PER_BATCH, messages.length);
 
-const renderBatch = (fromIndex, toIndex, append = true) => {
-    const fragment = document.createDocumentFragment();
-    for (let i = fromIndex; i < toIndex; i++) {
-        const msg = messages[i];
-        const bubble = document.createElement("div");
-        bubble.classList.add("message");
-        bubble.classList.add(msg.role === "user" ? "user" : "assistant");
-        bubble.textContent = msg.text;
+    const renderBatch = (fromIndex, toIndex, append = true) => {
+        const fragment = document.createDocumentFragment();
+        for (let i = fromIndex; i < toIndex; i++) {
+            const msg = messages[i];
+            const bubble = document.createElement("div");
+            bubble.classList.add("message");
+            bubble.classList.add(msg.role === "user" ? "user" : "assistant");
+            bubble.textContent = msg.text;
 
-        const time = document.createElement("div");
-        time.classList.add("timestamp");
-        time.textContent = msg.timestamp;
+            const time = document.createElement("div");
+            time.classList.add("timestamp");
+            time.textContent = msg.timestamp;
 
-        const wrapper = document.createElement("div");
-        wrapper.appendChild(bubble);
-        wrapper.appendChild(time);
+            const wrapper = document.createElement("div");
+            wrapper.appendChild(bubble);
+            wrapper.appendChild(time);
 
-        fragment.appendChild(wrapper);
-    }
+            fragment.appendChild(wrapper);
+        }
 
-    if (append) {
-        container.appendChild(fragment);
-    } else {
-        container.prepend(fragment);
-    }
-};
+        if (append) {
+            container.appendChild(fragment);
+        } else {
+            container.prepend(fragment);
+        }
+    };
 
-// Initial render (first batch from top)
-renderBatch(startIndex, endIndex);
+    // Initial render (first batch from top)
+    renderBatch(startIndex, endIndex);
 
-// Scroll to top
-container.scrollTop = 0;
+    // Scroll to top
+    container.scrollTop = 0;
 
-// Lazy load newer messages when scrolling to bottom
-container.onscroll = () => {
-    if (container.scrollTop + container.clientHeight >= container.scrollHeight - 1 && endIndex < messages.length) {
-        const newEnd = Math.min(messages.length, endIndex + MESSAGES_PER_BATCH);
-        renderBatch(endIndex, newEnd, true);
-        endIndex = newEnd;
-    }
-};
+    // Lazy load newer messages when scrolling to bottom
+    container.onscroll = () => {
+        if (container.scrollTop + container.clientHeight >= container.scrollHeight - 1 && endIndex < messages.length) {
+            const newEnd = Math.min(messages.length, endIndex + MESSAGES_PER_BATCH);
+            renderBatch(endIndex, newEnd, true);
+            endIndex = newEnd;
+        }
+    };
+}
