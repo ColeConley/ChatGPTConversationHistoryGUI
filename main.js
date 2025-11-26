@@ -1,3 +1,5 @@
+let conversations = []; // Store all conversations globally
+
 document.getElementById("fileInput").addEventListener("change", function(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -8,9 +10,17 @@ document.getElementById("fileInput").addEventListener("change", function(event) 
             const json = JSON.parse(e.target.result);
             console.log("JSON loaded:", json);
 
-            // If array, take the first conversation
-            const conversation = Array.isArray(json) ? json[0] : json;
-            renderConversation(conversation);
+            // Store conversations (array) globally
+            conversations = Array.isArray(json) ? json : [json];
+
+            renderConversationList(conversations);
+            
+            // Optionally display the first conversation initially
+            if (conversations.length > 0) {
+                renderConversation(conversations[0]);
+                setActiveConversation(0);
+            }
+
         } catch (err) {
             console.error("JSON parse error:", err);
             alert("Error parsing JSON. Check console.");
@@ -19,6 +29,33 @@ document.getElementById("fileInput").addEventListener("change", function(event) 
     reader.readAsText(file);
 });
 
+// Render the list of conversations in the left panel
+function renderConversationList(conversations) {
+    const listContainer = document.getElementById("conversationList");
+    listContainer.innerHTML = "";
+
+    conversations.forEach((conv, index) => {
+        const item = document.createElement("div");
+        item.classList.add("conversationItem");
+        item.textContent = conv.title || `Conversation ${index+1}`;
+
+        item.addEventListener("click", () => {
+            renderConversation(conv);
+            setActiveConversation(index);
+        });
+
+        listContainer.appendChild(item);
+    });
+}
+
+function setActiveConversation(activeIndex) {
+    const items = document.querySelectorAll(".conversationItem");
+    items.forEach((el, idx) => {
+        el.classList.toggle("active", idx === activeIndex);
+    });
+}
+
+// Render a single conversation (same as before)
 function renderConversation(data) {
     console.log("renderConversation called");
 

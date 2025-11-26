@@ -4,9 +4,42 @@ body {
     margin: 20px;
 }
 
-#chatContainer {
+#mainContainer {
+    display: flex;
     margin-top: 20px;
-    max-width: 700px;
+    max-width: 1000px;
+}
+
+#conversationList {
+    width: 250px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin-right: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.conversationItem {
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.conversationItem:hover {
+    background: #e0e0e0;
+}
+
+.conversationItem.active {
+    background: #d1e7ff;
+}
+
+#chatContainer {
+    flex: 1;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .message {
