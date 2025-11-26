@@ -59,7 +59,7 @@ function applyFilters(messages) {
     });
 }
 
-// Render conversation with top-first lazy loading
+// Render conversation with top-first lazy loading and code formatting
 function renderConversation(data) {
     currentConversation = data;
     const container = document.getElementById("chatContainer");
@@ -117,7 +117,38 @@ function renderConversation(data) {
             const msg = messages[i];
             const bubble = document.createElement("div");
             bubble.classList.add("message", msg.role === "user" ? "user" : "assistant");
-            bubble.textContent = msg.text;
+
+            // Code block handling
+            if (msg.text.includes("```")) {
+                const parts = msg.text.split(/```/);
+                parts.forEach((part, idx) => {
+                    if (idx % 2 === 1) {
+                        const pre = document.createElement("pre");
+                        const code = document.createElement("code");
+                        code.textContent = part;
+                        pre.appendChild(code);
+                        bubble.appendChild(pre);
+                    } else if (part.trim() !== "") {
+                        const textNode = document.createTextNode(part);
+                        bubble.appendChild(textNode);
+                    }
+                });
+            } else if (msg.text.includes("`")) {
+                // Inline code
+                const parts = msg.text.split(/(`.+?`)/);
+                parts.forEach(part => {
+                    if (part.startsWith("`") && part.endsWith("`")) {
+                        const code = document.createElement("code");
+                        code.classList.add("inline");
+                        code.textContent = part.slice(1, -1);
+                        bubble.appendChild(code);
+                    } else {
+                        bubble.appendChild(document.createTextNode(part));
+                    }
+                });
+            } else {
+                bubble.textContent = msg.text;
+            }
 
             const time = document.createElement("div");
             time.classList.add("timestamp");
@@ -133,11 +164,10 @@ function renderConversation(data) {
         else container.prepend(fragment);
     };
 
-    // Initial render (top batch)
+    // Initial render
     renderBatch(startIndex, endIndex);
     container.scrollTop = 0;
 
-    // Lazy load newer messages on scroll
     container.onscroll = () => {
         if (container.scrollTop + container.clientHeight >= container.scrollHeight - 1 && endIndex < messages.length) {
             const newEnd = Math.min(messages.length, endIndex + MESSAGES_PER_BATCH);
@@ -176,4 +206,11 @@ document.getElementById("downloadMessages").addEventListener("click", () => {
     a.download = `${currentConversation.title || "messages_filtered"}.json`;
     a.click();
     URL.revokeObjectURL(url);
+});
+
+// Apply filter button
+document.getElementById("applyFilter").addEventListener("click", () => {
+    if (currentConversation) {
+        renderConversation(currentConversation);
+    }
 });
